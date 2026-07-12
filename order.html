@@ -156,30 +156,47 @@
     document.getElementById("submit-btn").disabled = !hasItem;
   }
 
-  // 6. 注文ボタンが押されたらGASにデータをぶっ飛ばす
-  function submitOrder() {
-    const btn = document.getElementById("submit-btn");
-    btn.disabled = true;
-    btn.innerText = "注文を送信中...";
-
+// 6. 注文ボタンが押されたら確認を挟んでGASにデータをぶっ飛ばす
+function submitOrder() {
     // 買った商品の内訳テキストを作る (例: 新鮮こだわり卵(10個パック)x2)
     let itemsTextArray = [];
+    let confirmTextArray = []; // 👈 確認ポップアップ用の見やすいリスト
+    
     productsData.forEach(p => {
       const qty = cart[p.id];
       if (qty > 0) {
-        itemsTextArray.push(`${p.name}(${p.volume || '規格なし'})x${qty}`);
+        const itemStr = `${p.name}(${p.volume || '規格なし'})x${qty}`;
+        itemsTextArray.push(itemStr);
+        confirmTextArray.push(`・${p.name} × ${qty}`); // 👈 ポップアップ用の表示
       }
     });
     
     let totalPrice = 0;
     productsData.forEach(p => { totalPrice += p.price * cart[p.id]; });
 
+    // 🚨 【追加】注文確定前の最終確認アラート
+    const confirmMessage = 
+      "【ご注文内容の確認】\n\n" + 
+      confirmTextArray.join("\n") + "\n\n" +
+      `合計金額: ¥${totalPrice.toLocaleString()}\n\n` +
+      "この内容で注文を確定してもよろしいですか？";
+
+    if (!confirm(confirmMessage)) {
+      // 「キャンセル」が押されたら、ここで処理をストップして画面に戻る
+      return; 
+    }
+
+    // 「OK」が押されたら、ここから下の送信処理が実行されます
+    const btn = document.getElementById("submit-btn");
+    btn.disabled = true;
+    btn.innerText = "注文を送信中...";
+
     const payload = {
       action: "createOrder",
       idToken: idToken,
-      items: itemsTextArray.join(", "), // カンマ区切りの1本の文字にする
+      items: itemsTextArray.join(", "),
       totalPrice: totalPrice,
-      paymentMethod: "現金", // 現段階のデフォルト（のちにSquareと連携）
+      paymentMethod: "現金",
       notes: document.getElementById("notes").value
     };
 
@@ -191,7 +208,7 @@
     .then(data => {
       if (data.status === "success") {
         alert("ご注文ありがとうございました！");
-        liff.closeWindow(); // 画面を自動でパッと閉じる
+        liff.closeWindow();
       } else {
         alert("注文に失敗しました: " + data.message);
         btn.disabled = false;
