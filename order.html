@@ -19,7 +19,8 @@
   <style>
     body { background-color: #f8f9fa; font-family: sans-serif; }
     .product-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 16px; margin-bottom: 16px; }
-    .product-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; background-color: #eee; }
+    /* 縦ラインを揃えるため、画像のサイズを確実に固定 */
+    .product-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; background-color: #eee; flex-shrink: 0; }
     
     .qty-btn { 
       width: 36px; 
@@ -64,37 +65,16 @@
       position: relative;
       transform: translateY(20px);
       opacity: 0;
-      /* アニメーションの速度やズレはJSでランダムに上書きするため、ここでは動きの基本形だけ指定 */
       animation: harvest 2s infinite cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     
-    .veggie-orange {
-      height: 35px;
-      background: #ff7043;
-      border-radius: 4px 4px 12px 12px;
-    }
-    .veggie-white {
-      height: 42px;
-      background: linear-gradient(to bottom, #a5d6a7 0%, #fff 40%);
-      border-radius: 4px 4px 15px 15px;
-    }
-    .veggie-purple {
-      height: 28px;
-      width: 28px;
-      background: linear-gradient(to bottom, #ce93d8 0%, #fff 70%);
-      border-radius: 50% 50% 40% 40%;
-    }
+    .veggie-orange { height: 35px; background: #ff7043; border-radius: 4px 4px 12px 12px; }
+    .veggie-white { height: 42px; background: linear-gradient(to bottom, #a5d6a7 0%, #fff 40%); border-radius: 4px 4px 15px 15px; }
+    .veggie-purple { height: 28px; width: 28px; background: linear-gradient(to bottom, #ce93d8 0%, #fff 70%); border-radius: 50% 50% 40% 40%; }
 
     .loading-vegetable::before {
-      content: '';
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 10px;
-      height: 12px;
-      background: #4caf50;
-      border-radius: 8px 8px 0 0;
+      content: ''; position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 12px; background: #4caf50; border-radius: 8px 8px 0 0;
       box-shadow: -6px 2px 0 -1px #4caf50, 6px 2px 0 -1px #4caf50;
     }
 
@@ -116,23 +96,15 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       z-index: 9999;
     }
-    .plane-container {
-      position: relative; width: 120px; height: 120px; margin-bottom: 20px;
-    }
-    .paper-plane {
-      width: 60px; height: 60px; position: absolute; top: 30px; left: 30px;
-      animation: flyAround 2s ease-in-out infinite;
-    }
+    .plane-container { position: relative; width: 120px; height: 120px; margin-bottom: 20px; }
+    .paper-plane { width: 60px; height: 60px; position: absolute; top: 30px; left: 30px; animation: flyAround 2s ease-in-out infinite; }
     @keyframes flyAround {
       0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0; }
       15% { opacity: 1; }
       85% { opacity: 1; }
       100% { transform: translate(80px, -60px) rotate(5deg) scale(0.8); opacity: 0; }
     }
-    .plane-line {
-      position: absolute; top: 75px; left: 10px; width: 80px; height: 2px;
-      border-top: 2px dashed #198754; transform: rotate(-35deg); opacity: 0.4;
-    }
+    .plane-line { position: absolute; top: 75px; left: 10px; width: 80px; height: 2px; border-top: 2px dashed #198754; transform: rotate(-35deg); opacity: 0.4; }
 
     /* 🎉 サンクスページ */
     #success-overlay {
@@ -200,7 +172,8 @@
       </div>
       <div class="modal-footer border-0 p-3 pt-0">
         <button type="button" class="btn btn-light w-50 py-2 fw-bold text-muted" data-bs-dismiss="modal">修正する</button>
-        <button type="button" class="btn btn-success w-50 py-2 fw-bold" onclick="submitOrder()">これで確定する</button>
+        <!-- 🌟 二重送信防止のため、ボタンに id="submit-confirm-btn" を付与 -->
+        <button type="button" class="btn btn-success w-50 py-2 fw-bold" id="submit-confirm-btn" onclick="submitOrder()">これで確定する</button>
       </div>
     </div>
   </div>
@@ -237,11 +210,10 @@
   let cart = {}; 
   let idToken = "";
   let bootstrapModal = null; 
+  let isSubmitting = false; // 🌟 連打防止フラグ
 
   document.addEventListener("DOMContentLoaded", function() {
     bootstrapModal = new bootstrap.Modal(document.getElementById('confirmModal'));
-    
-    // 🌟 【新機能】ページを読み込んだ瞬間に、野菜の抜ける速度とタイミングをランダムに設定する
     randomizeVegetables();
 
     liff.init({ liffId: LIFF_ID })
@@ -258,17 +230,11 @@
       });
   });
 
-  // 🌟 【新機能】野菜のアニメーション速度をランダム化する関数
   function randomizeVegetables() {
     const veggies = document.querySelectorAll('.loading-vegetable');
-    
     veggies.forEach((veggie) => {
-      // 全体のループ周期を 1.6秒〜2.4秒 の間でランダムに設定（ベースは2秒）
       const duration = (Math.random() * 0.8 + 1.6).toFixed(2);
-      // 最初に出現するまでの時間（ディレイ）を 0.1秒〜1.2秒 の間でランダムに設定
       const delay = (Math.random() * 1.1 + 0.1).toFixed(2);
-      
-      // CSSを直接書き換えて個性を出す
       veggie.style.animationDuration = `${duration}s`;
       veggie.style.animationDelay = `${delay}s`;
     });
@@ -295,6 +261,7 @@
     });
   }
 
+  // 🌟 【修正】Bootstrapのグリッドシステム(row, col)を導入し、縦ラインを完璧に統一
   function renderProducts() {
     const listDiv = document.getElementById("product-list");
     if (productsData.length === 0) {
@@ -309,12 +276,12 @@
       card.className = "product-card";
       card.innerHTML = `
         <div class="row align-items-center">
-          <!-- 📷 画像エリア（固定幅：横並びの3つのグリッド分） -->
+          <!-- 📷 画像エリア（固定グリッド幅） -->
           <div class="col-3 d-flex justify-content-start">
             ${p.imageUrl ? `<img src="${p.imageUrl}" class="product-img" alt="${p.name}">` : '<div class="product-img d-flex align-items-center justify-content-center text-muted small text-center px-1" style="background:#eee; font-size: 11px;">No Img</div>'}
           </div>
           
-          <!-- 📝 テキストエリア（中央：残りのスペースを柔軟に使う） -->
+          <!-- 📝 テキストエリア（文字数にかかわらず左端がピシッと揃う） -->
           <div class="col flex-grow-1 ps-2">
             <h5 class="mb-0 fw-bold">${p.name}</h5>
             <small class="text-muted d-block mb-1">${p.volume || ""}</small>
@@ -322,7 +289,7 @@
             <span class="text-danger fw-bold fs-5">¥${p.price.toLocaleString()}</span>
           </div>
           
-          <!-- 🔢 数量ボタンエリア（右端：自動で幅を合わせる） -->
+          <!-- 🔢 数量ボタンエリア（右寄せ固定） -->
           <div class="col-auto d-flex align-items-center gap-2">
             <button class="qty-btn" onclick="changeQty('${p.id}', -1)">-</button>
             <span class="fw-bold fs-5" id="qty-${p.id}" style="min-width: 1.5rem; text-align: center;">0</span>
@@ -407,8 +374,19 @@
   }
 
   function submitOrder() {
+    // 🌟 連打・二重送信防止のチェック
+    if (isSubmitting) return;
+    isSubmitting = true;
+
+    // 確定ボタンを押せなくして連打を物理遮断
+    const confirmBtn = document.getElementById("submit-confirm-btn");
+    if (confirmBtn) confirmBtn.disabled = true;
+
     bootstrapModal.hide();
     document.getElementById("loading-overlay").style.display = "flex";
+
+    // 🌟 鮮度の高い最新のIDトークンを送信直前に再取得
+    idToken = liff.getIDToken();
 
     let itemsTextArray = [];
     productsData.forEach(p => {
@@ -421,12 +399,12 @@
     let totalPrice = 0;
     productsData.forEach(p => { totalPrice += p.price * cart[p.id]; });
 
+    // 🌟 Claudeレビュー反映：paymentMethod（現金）の固定送信を完全に削除！
     const payload = {
       action: "createOrder",
       idToken: idToken,
       items: itemsTextArray.join(", "), 
       totalPrice: totalPrice,
-      paymentMethod: "現金", 
       notes: document.getElementById("notes").value
     };
 
@@ -444,11 +422,17 @@
         }, 2500);
       } else {
         alert("注文に失敗しました: " + data.message);
+        // 失敗した場合は再度ボタンを押せるように戻す
+        isSubmitting = false;
+        if (confirmBtn) confirmBtn.disabled = false;
       }
     })
     .catch(err => {
       document.getElementById("loading-overlay").style.display = "none";
       alert("通信エラーが発生しました: " + err);
+      // エラーの場合も再度ボタンを押せるように戻す
+      isSubmitting = false;
+      if (confirmBtn) confirmBtn.disabled = false;
     });
   }
 </script>
