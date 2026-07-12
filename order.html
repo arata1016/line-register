@@ -261,7 +261,7 @@
     });
   }
 
-  // 🌟 【修正】Bootstrapのグリッドシステム(row, col)を導入し、縦ラインを完璧に統一
+  // 🥕 【大修正】ボタンの引数にシングルクォーテーションを明示して、すべての商品が独立して動くように修正
   function renderProducts() {
     const listDiv = document.getElementById("product-list");
     if (productsData.length === 0) {
@@ -276,12 +276,12 @@
       card.className = "product-card";
       card.innerHTML = `
         <div class="row align-items-center">
-          <!-- 📷 画像エリア（固定グリッド幅） -->
+          <!-- 📷 画像エリア -->
           <div class="col-3 d-flex justify-content-start">
             ${p.imageUrl ? `<img src="${p.imageUrl}" class="product-img" alt="${p.name}">` : '<div class="product-img d-flex align-items-center justify-content-center text-muted small text-center px-1" style="background:#eee; font-size: 11px;">No Img</div>'}
           </div>
           
-          <!-- 📝 テキストエリア（文字数にかかわらず左端がピシッと揃う） -->
+          <!-- 📝 テキストエリア -->
           <div class="col flex-grow-1 ps-2">
             <h5 class="mb-0 fw-bold">${p.name}</h5>
             <small class="text-muted d-block mb-1">${p.volume || ""}</small>
@@ -289,11 +289,11 @@
             <span class="text-danger fw-bold fs-5">¥${p.price.toLocaleString()}</span>
           </div>
           
-          <!-- 🔢 数量ボタンエリア（右寄せ固定） -->
+          <!-- 🔢 数量ボタンエリア（p.id を \'${p.id}\' で囲うことで、文字列として確実にJavaScriptに渡します） -->
           <div class="col-auto d-flex align-items-center gap-2">
-            <button class="qty-btn" onclick="changeQty('${p.id}', -1)">-</button>
+            <button class="qty-btn" onclick="changeQty(\'${p.id}\', -1)">-</button>
             <span class="fw-bold fs-5" id="qty-${p.id}" style="min-width: 1.5rem; text-align: center;">0</span>
-            <button class="qty-btn" onclick="changeQty('${p.id}', 1)">+</button>
+            <button class="qty-btn" onclick="changeQty(\'${p.id}\', 1)">+</button>
           </div>
         </div>
       `;
