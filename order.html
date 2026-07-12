@@ -306,19 +306,28 @@
       cart[p.id] = 0; 
 
       const card = document.createElement("div");
-      card.className = "product-card d-flex align-items-center";
+      card.className = "product-card";
       card.innerHTML = `
-        ${p.imageUrl ? `<img src="${p.imageUrl}" class="product-img me-3" alt="${p.name}">` : '<div class="product-img me-3 d-flex align-items-center justify-content-center text-muted fs-6" style="background:#eee;">No Img</div>'}
-        <div class="flex-grow-1">
-          <h5 class="mb-0 fw-bold">${p.name}</h5>
-          <small class="text-muted d-block mb-1">${p.volume || ""}</small>
-          <p class="text-muted small mb-1" style="line-height:1.2;">${p.description || ""}</p>
-          <span class="text-danger fw-bold fs-5">¥${p.price.toLocaleString()}</span>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <button class="qty-btn" onclick="changeQty('${p.id}', -1)">-</button>
-          <span class="fw-bold fs-5" id="qty-${p.id}">0</span>
-          <button class="qty-btn" onclick="changeQty('${p.id}', 1)">+</button>
+        <div class="row align-items-center">
+          <!-- 📷 画像エリア（固定幅：横並びの3つのグリッド分） -->
+          <div class="col-3 d-flex justify-content-start">
+            ${p.imageUrl ? `<img src="${p.imageUrl}" class="product-img" alt="${p.name}">` : '<div class="product-img d-flex align-items-center justify-content-center text-muted small text-center px-1" style="background:#eee; font-size: 11px;">No Img</div>'}
+          </div>
+          
+          <!-- 📝 テキストエリア（中央：残りのスペースを柔軟に使う） -->
+          <div class="col flex-grow-1 ps-2">
+            <h5 class="mb-0 fw-bold">${p.name}</h5>
+            <small class="text-muted d-block mb-1">${p.volume || ""}</small>
+            <p class="text-muted small mb-1" style="line-height:1.2;">${p.description || ""}</p>
+            <span class="text-danger fw-bold fs-5">¥${p.price.toLocaleString()}</span>
+          </div>
+          
+          <!-- 🔢 数量ボタンエリア（右端：自動で幅を合わせる） -->
+          <div class="col-auto d-flex align-items-center gap-2">
+            <button class="qty-btn" onclick="changeQty('${p.id}', -1)">-</button>
+            <span class="fw-bold fs-5" id="qty-${p.id}" style="min-width: 1.5rem; text-align: center;">0</span>
+            <button class="qty-btn" onclick="changeQty('${p.id}', 1)">+</button>
+          </div>
         </div>
       `;
       listDiv.appendChild(card);
