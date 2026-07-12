@@ -1,123 +1,26 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>商品ご注文フォーム</title>
-  
-    <!-- 🌟 ここから【URLプレビューの調整】を追加 -->
-    <meta property="og:title" content="商品ご注文フォーム" />
-    <meta property="og:description" content="お店の最新メニューからいつでも簡単にご注文いただけます。数量を選んで送信してください。" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="オンライン注文システム" />
-    <!-- 🌟 ここまで -->
-  <!-- 綺麗に整えるためのBootstrap（デザイン枠組み） -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品ご注文フォーム</title>
+
+  <!-- 🌟 URLプレビュー（OGP）の設定 -->
+  <meta property="og:title" content="商品ご注文フォーム" />
+  <meta property="og:description" content="お店の最新メニューからいつでも簡単にご注文いただけます。数量を選んで送信してください。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="オンライン注文システム" />
+
+  <!-- 綺麗に整えるためのBootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- LINEのLIFFを動かすための必須スクリプト -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
   <style>
     body { background-color: #f8f9fa; font-family: sans-serif; }
     .product-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 16px; margin-bottom: 16px; }
     .product-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; background-color: #eee; }
     
-/* 🥕 【新機能】畑から野菜がポコンと収穫されるローディング */
-#loading {
-      margin: 100px auto 60px;
-      text-align: center;
-      max-width: 220px;
-    }
-    /* 畑の土ベースライン */
-    .loading-field {
-      position: relative;
-      width: 100%;
-      height: 6px;
-      background: #6d4c41; /* 栄養たっぷりの濃い土の色 */
-      border-radius: 3px;
-      margin-bottom: 25px;
-      display: flex;
-      justify-content: space-around;
-      align-items: flex-end;
-      padding: 0 15px;
-    }
-    /* 収穫される野菜の共通設定 */
-    .loading-vegetable {
-      width: 24px;
-      position: relative;
-      transform: translateY(20px); /* 最初は土の中に隠れている */
-      opacity: 0;
-      animation: harvest 2s infinite cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 抜ける時の引っ張り感 */
-    }
-    
-    /* 1個目：にんじん風（オレンジ） */
-    .veggie-orange {
-      height: 35px;
-      background: #ff7043;
-      border-radius: 4px 4px 12px 12px; /* 下にむけてすぼまる形 */
-      animation-delay: 0.2s;
-    }
-    /* 2個目：大根風（白＋緑のグラデーション） */
-    .veggie-white {
-      height: 42px;
-      background: linear-gradient(to bottom, #a5d6a7 0%, #fff 40%);
-      border-radius: 4px 4px 15px 15px;
-      animation-delay: 0.6s;
-    }
-    /* 3個目：かぶ風（丸い紫） */
-    .veggie-purple {
-      height: 28px;
-      width: 28px;
-      background: linear-gradient(to bottom, #ce93d8 0%, #fff 70%);
-      border-radius: 50% 50% 40% 40%;
-      animation-delay: 1.0s;
-    }
-
-    /* 全ての野菜に共通の「葉っぱ」をCSSのヒゲで作る */
-    .loading-vegetable::before {
-      content: '';
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 10px;
-      height: 12px;
-      background: #4caf50; /* 新鮮な葉っぱの緑 */
-      border-radius: 8px 8px 0 0;
-      box-shadow: -6px 2px 0 -1px #4caf50, 6px 2px 0 -1px #4caf50; /* 左右に広がる3枚葉 */
-    }
-
-    /* 土からスポンッ！と抜けるアニメーション */
-    @keyframes harvest {
-      0% {
-        transform: translateY(20px) scaleY(0.7); /* 土の中で力を溜めて縮んでいる */
-        opacity: 0;
-      }
-      15% {
-        transform: translateY(20px) scaleY(0.7);
-        opacity: 1; /* 土の中で見え始める */
-      }
-      35% {
-        transform: translateY(-25px) scaleY(1.3); /* スポンッ！と勢いよく上に飛び出す（縦伸び） */
-      }
-      45% {
-        transform: translateY(0) scaleY(0.9); /* 着地（土の上）して、勢いで少し潰れる */
-      }
-      52% {
-        transform: translateY(-4px) scaleY(1.05); /* 軽くポンッと弾む */
-      }
-      60% {
-        transform: translateY(0) scaleY(1); /* 完全にきれいに着地 */
-      }
-      85% {
-        transform: translateY(0) scaleY(1);
-        opacity: 1; /* 収穫されたお披露目タイム */
-      }
-      100% {
-        transform: translateY(10px) scaleY(1);
-        opacity: 0; /* 次の収穫のためにスッと消える */
-      }
-    }
-
-    /* ボタンの連打で画面が拡大されるのを防ぐ設定 */
     .qty-btn { 
       width: 36px; 
       height: 36px; 
@@ -131,7 +34,82 @@
     
     .cart-summary { background: white; border-top: 1px solid #dee2e6; padding: 16px; position: fixed; bottom: 0; left: 0; right: 0; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
     
-    /* ✈️ 紙飛行機ローディングのアニメーション設定 */
+    /* ボタンが押せない時は少し半透明にする */
+    .btn-success:disabled {
+      opacity: 0.55;
+      background-color: #198754;
+      border-color: #198754;
+    }
+
+    /* 🥕 畑から野菜がポコンと収穫されるローディング */
+    #loading {
+      margin: 100px auto 60px;
+      text-align: center;
+      max-width: 220px;
+    }
+    .loading-field {
+      position: relative;
+      width: 100%;
+      height: 6px;
+      background: #6d4c41; /* 栄養たっぷりの濃い土の色 */
+      border-radius: 3px;
+      margin-bottom: 25px;
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      padding: 0 15px;
+    }
+    .loading-vegetable {
+      width: 24px;
+      position: relative;
+      transform: translateY(20px);
+      opacity: 0;
+      /* アニメーションの速度やズレはJSでランダムに上書きするため、ここでは動きの基本形だけ指定 */
+      animation: harvest 2s infinite cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .veggie-orange {
+      height: 35px;
+      background: #ff7043;
+      border-radius: 4px 4px 12px 12px;
+    }
+    .veggie-white {
+      height: 42px;
+      background: linear-gradient(to bottom, #a5d6a7 0%, #fff 40%);
+      border-radius: 4px 4px 15px 15px;
+    }
+    .veggie-purple {
+      height: 28px;
+      width: 28px;
+      background: linear-gradient(to bottom, #ce93d8 0%, #fff 70%);
+      border-radius: 50% 50% 40% 40%;
+    }
+
+    .loading-vegetable::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 12px;
+      background: #4caf50;
+      border-radius: 8px 8px 0 0;
+      box-shadow: -6px 2px 0 -1px #4caf50, 6px 2px 0 -1px #4caf50;
+    }
+
+    @keyframes harvest {
+      0% { transform: translateY(20px) scaleY(0.7); opacity: 0; }
+      15% { transform: translateY(20px) scaleY(0.7); opacity: 1; }
+      35% { transform: translateY(-25px) scaleY(1.3); }
+      45% { transform: translateY(0) scaleY(0.9); }
+      52% { transform: translateY(-4px) scaleY(1.05); }
+      60% { transform: translateY(0) scaleY(1); opacity: 1; }
+      85% { transform: translateY(0) scaleY(1); opacity: 1; }
+      100% { transform: translateY(10px) scaleY(1); opacity: 0; }
+    }
+
+    /* ✈️ 紙飛行機ローディング（送信時） */
     #loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(255, 255, 255, 0.95);
@@ -139,58 +117,30 @@
       z-index: 9999;
     }
     .plane-container {
-      position: relative;
-      width: 120px;
-      height: 120px;
-      margin-bottom: 20px;
+      position: relative; width: 120px; height: 120px; margin-bottom: 20px;
     }
     .paper-plane {
-      width: 60px;
-      height: 60px;
-      position: absolute;
-      top: 30px;
-      left: 30px;
+      width: 60px; height: 60px; position: absolute; top: 30px; left: 30px;
       animation: flyAround 2s ease-in-out infinite;
     }
     @keyframes flyAround {
-      0% {
-        transform: translate(0, 0) rotate(0deg) scale(1);
-        opacity: 0;
-      }
-      15% {
-        opacity: 1;
-      }
-      85% {
-        opacity: 1;
-      }
-      100% {
-        transform: translate(80px, -60px) rotate(5deg) scale(0.8);
-        opacity: 0;
-      }
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 0; }
+      15% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { transform: translate(80px, -60px) rotate(5deg) scale(0.8); opacity: 0; }
     }
     .plane-line {
-      position: absolute;
-      top: 75px;
-      left: 10px;
-      width: 80px;
-      height: 2px;
-      border-top: 2px dashed #198754;
-      transform: rotate(-35deg);
-      opacity: 0.4;
+      position: absolute; top: 75px; left: 10px; width: 80px; height: 2px;
+      border-top: 2px dashed #198754; transform: rotate(-35deg); opacity: 0.4;
     }
 
-    /* 🎉 【新機能】サンクスページ（注文完了）のスタイル */
+    /* 🎉 サンクスページ */
     #success-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: #ffffff;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 10000;
-      animation: fadeIn 0.4s ease-out;
+      background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 10000; animation: fadeIn 0.4s ease-out;
     }
-    .success-icon {
-      width: 80px; height: 80px;
-      animation: scaleUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
+    .success-icon { width: 80px; height: 80px; animation: scaleUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes scaleUp { from { transform: scale(0); } to { transform: scale(1); } }
   </style>
@@ -200,21 +150,19 @@
 <div class="container pt-4" style="margin-bottom: 180px;">
   <h2 class="text-center mb-4 fw-bold text-success">商品ご注文</h2>
   
-<!-- 🥕 新しいローディング表示（畑から野菜を収穫中） -->
-<div id="loading">
-  <div class="loading-field">
-    <div class="loading-vegetable veggie-orange"></div>
-    <div class="loading-vegetable veggie-white"></div>
-    <div class="loading-vegetable veggie-purple"></div>
+  <!-- 🥕 新しいローディング表示（畑から野菜を収穫中） -->
+  <div id="loading">
+    <div class="loading-field">
+      <div class="loading-vegetable veggie-orange"></div>
+      <div class="loading-vegetable veggie-white"></div>
+      <div class="loading-vegetable veggie-purple"></div>
+    </div>
+    <p class="mt-3 text-muted small fw-bold">畑から新鮮な野菜を収穫しています...</p>
   </div>
-  <p class="mt-3 text-muted small fw-bold">畑から新鮮な野菜を収穫しています...</p>
-</div>
 
-  <!-- ここに商品リストが自動でズラッと並びます -->
   <div id="product-list"></div>
 </div>
 
-<!-- 画面下部に固定される「合計・注文エリア」 -->
 <div class="cart-summary" id="summary-area" style="display: none;">
   <div class="container">
     <div class="mb-3">
@@ -225,12 +173,12 @@
       <span class="fw-bold fs-3 text-danger">¥<span id="total-price">0</span></span>
     </div>
     <button class="btn btn-success w-100 py-3 fw-bold fs-5 shadow-sm" id="checkout-btn" disabled onclick="openConfirmModal()">
-      注文内容を確認する
+      商品を選択してください
     </button>
   </div>
 </div>
 
-<!-- 📦 リッチな注文確認モーダル（ポップアップ） -->
+<!-- 📦 注文確認モーダル -->
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
@@ -240,14 +188,11 @@
       </div>
       <div class="modal-body p-4">
         <p class="text-muted small mb-3">以下の内容で注文を確定します。間違いがないかご確認ください。</p>
-        
         <div id="modal-items-list" class="mb-3 border-bottom pb-3"></div>
-        
         <div class="mb-3 small" id="modal-notes-area" style="display:none;">
           <strong class="text-muted">◆ お店へのご要望:</strong>
           <div id="modal-notes-text" class="p-2 bg-light rounded mt-1 text-secondary"></div>
         </div>
-
         <div class="d-flex justify-content-between align-items-center mt-3">
           <span class="fw-bold fs-5">合計金額:</span>
           <span class="fw-bold fs-3 text-danger">¥<span id="modal-total-price">0</span></span>
@@ -261,7 +206,7 @@
   </div>
 </div>
 
-<!-- ⏳ 送信中の快適ローディング画面 -->
+<!-- ⏳ 送信中の紙飛行機ローディング -->
 <div id="loading-overlay" style="display: none;">
   <div class="plane-container">
     <div class="plane-line"></div>
@@ -273,9 +218,8 @@
   <p class="text-muted small">画面を閉じずにお待ちください</p>
 </div>
 
-<!-- 🎉 【新機能】綺麗でおしゃれな注文完了画面（初期状態は非表示） -->
+<!-- 🎉 注文完了画面 -->
 <div id="success-overlay" style="display: none;">
-  <!-- 緑色のチェックマークアイコン(SVG) -->
   <svg class="success-icon text-success mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
     <polyline points="20 6 9 17 4 12"></polyline>
   </svg>
@@ -283,7 +227,6 @@
   <p class="text-muted small px-4 text-center">注文が正常に送信されました。<br>自動的にLINE画面に戻ります...</p>
 </div>
 
-<!-- Bootstrapの動的な動きに必要なJavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -297,6 +240,9 @@
 
   document.addEventListener("DOMContentLoaded", function() {
     bootstrapModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    
+    // 🌟 【新機能】ページを読み込んだ瞬間に、野菜の抜ける速度とタイミングをランダムに設定する
+    randomizeVegetables();
 
     liff.init({ liffId: LIFF_ID })
       .then(() => {
@@ -311,6 +257,22 @@
         alert("LIFFの起動に失敗しました: " + err);
       });
   });
+
+  // 🌟 【新機能】野菜のアニメーション速度をランダム化する関数
+  function randomizeVegetables() {
+    const veggies = document.querySelectorAll('.loading-vegetable');
+    
+    veggies.forEach((veggie) => {
+      // 全体のループ周期を 1.6秒〜2.4秒 の間でランダムに設定（ベースは2秒）
+      const duration = (Math.random() * 0.8 + 1.6).toFixed(2);
+      // 最初に出現するまでの時間（ディレイ）を 0.1秒〜1.2秒 の間でランダムに設定
+      const delay = (Math.random() * 1.1 + 0.1).toFixed(2);
+      
+      // CSSを直接書き換えて個性を出す
+      veggie.style.animationDuration = `${duration}s`;
+      veggie.style.animationDelay = `${delay}s`;
+    });
+  }
 
   function loadProducts() {
     fetch(GAS_URL, {
@@ -385,7 +347,15 @@
     });
 
     document.getElementById("total-price").innerText = total.toLocaleString();
-    document.getElementById("checkout-btn").disabled = !hasItem;
+    
+    const checkoutBtn = document.getElementById("checkout-btn");
+    if (hasItem) {
+      checkoutBtn.disabled = false;
+      checkoutBtn.innerText = "注文内容を確認する";
+    } else {
+      checkoutBtn.disabled = true;
+      checkoutBtn.innerText = "商品を選択してください";
+    }
   }
 
   function openConfirmModal() {
@@ -457,18 +427,12 @@
     })
     .then(res => res.json())
     .then(data => {
-      // 飛行機ローディングを隠す
       document.getElementById("loading-overlay").style.display = "none";
-      
       if (data.status === "success") {
-        // ✨ 【新機能】おっかない標準アラートを廃止して、特製サンクス画面をドカンと表示！
         document.getElementById("success-overlay").style.display = "flex";
-        
-        // 2.5秒間だけ完了画面を見せて、余韻を楽しんでもらってから自動でLINEに戻す
         setTimeout(() => {
           liff.closeWindow(); 
         }, 2500);
-
       } else {
         alert("注文に失敗しました: " + data.message);
       }
