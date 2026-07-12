@@ -13,7 +13,7 @@
     .product-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 16px; margin-bottom: 16px; }
     .product-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; background-color: #eee; }
     
-    /* 🛠️ 【修正】ボタンの連打で画面が拡大されるのを防ぐ設定 */
+    /* ボタンの連打で画面が拡大されるのを防ぐ設定 */
     .qty-btn { 
       width: 36px; 
       height: 36px; 
@@ -21,7 +21,7 @@
       border: 1px solid #ced4da; 
       background: white; 
       font-weight: bold;
-      touch-action: manipulation; /* 👈 これがスマホのダブルタップズームを無効化します */
+      touch-action: manipulation; 
     }
     .qty-btn:active { background: #e9ecef; }
     
@@ -74,6 +74,21 @@
       transform: rotate(-35deg);
       opacity: 0.4;
     }
+
+    /* 🎉 【新機能】サンクスページ（注文完了）のスタイル */
+    #success-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #ffffff;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 10000;
+      animation: fadeIn 0.4s ease-out;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      animation: scaleUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleUp { from { transform: scale(0); } to { transform: scale(1); } }
   </style>
 </head>
 <body>
@@ -150,6 +165,16 @@
   <p class="text-muted small">画面を閉じずにお待ちください</p>
 </div>
 
+<!-- 🎉 【新機能】綺麗でおしゃれな注文完了画面（初期状態は非表示） -->
+<div id="success-overlay" style="display: none;">
+  <!-- 緑色のチェックマークアイコン(SVG) -->
+  <svg class="success-icon text-success mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+  <h4 class="fw-bold text-dark mb-2">ご注文ありがとうございました！</h4>
+  <p class="text-muted small px-4 text-center">注文が正常に送信されました。<br>自動的にLINE画面に戻ります...</p>
+</div>
+
 <!-- Bootstrapの動的な動きに必要なJavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -179,7 +204,6 @@
       });
   });
 
-  // （以下、機能の処理はそのまま維持されています）
   function loadProducts() {
     fetch(GAS_URL, {
       method: "POST",
@@ -325,10 +349,18 @@
     })
     .then(res => res.json())
     .then(data => {
+      // 飛行機ローディングを隠す
       document.getElementById("loading-overlay").style.display = "none";
+      
       if (data.status === "success") {
-        alert("ご注文ありがとうございました！");
-        liff.closeWindow(); 
+        // ✨ 【新機能】おっかない標準アラートを廃止して、特製サンクス画面をドカンと表示！
+        document.getElementById("success-overlay").style.display = "flex";
+        
+        // 2.5秒間だけ完了画面を見せて、余韻を楽しんでもらってから自動でLINEに戻す
+        setTimeout(() => {
+          liff.closeWindow(); 
+        }, 2500);
+
       } else {
         alert("注文に失敗しました: " + data.message);
       }
