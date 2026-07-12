@@ -12,11 +12,22 @@
     body { background-color: #f8f9fa; font-family: sans-serif; }
     .product-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 16px; margin-bottom: 16px; }
     .product-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; background-color: #eee; }
-    .qty-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ced4da; background: white; font-weight: bold; }
+    
+    /* 🛠️ 【修正】ボタンの連打で画面が拡大されるのを防ぐ設定 */
+    .qty-btn { 
+      width: 36px; 
+      height: 36px; 
+      border-radius: 50%; 
+      border: 1px solid #ced4da; 
+      background: white; 
+      font-weight: bold;
+      touch-action: manipulation; /* 👈 これがスマホのダブルタップズームを無効化します */
+    }
     .qty-btn:active { background: #e9ecef; }
+    
     .cart-summary { background: white; border-top: 1px solid #dee2e6; padding: 16px; position: fixed; bottom: 0; left: 0; right: 0; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
     
-    /* ✈️ 【新機能】紙飛行機ローディングのアニメーション設定 */
+    /* ✈️ 紙飛行機ローディングのアニメーション設定 */
     #loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(255, 255, 255, 0.95);
@@ -29,7 +40,6 @@
       height: 120px;
       margin-bottom: 20px;
     }
-    /* 紙飛行機のデザイン（SVGで描画） */
     .paper-plane {
       width: 60px;
       height: 60px;
@@ -38,7 +48,6 @@
       left: 30px;
       animation: flyAround 2s ease-in-out infinite;
     }
-    /* 紙飛行機が右上にスーッと飛んでいくようなループアニメーション */
     @keyframes flyAround {
       0% {
         transform: translate(0, 0) rotate(0deg) scale(1);
@@ -55,7 +64,6 @@
         opacity: 0;
       }
     }
-    /* 後ろに残る飛行機雲（点線）の演出 */
     .plane-line {
       position: absolute;
       top: 75px;
@@ -130,11 +138,10 @@
   </div>
 </div>
 
-<!-- ⏳ 【新・紙飛行機】送信中の快適ローディング画面（初期状態は非表示） -->
+<!-- ⏳ 送信中の快適ローディング画面 -->
 <div id="loading-overlay" style="display: none;">
   <div class="plane-container">
     <div class="plane-line"></div>
-    <!-- 緑色の綺麗な紙飛行機アイコン(SVG) -->
     <svg class="paper-plane" viewBox="0 0 24 24" fill="#198754" xmlns="http://www.w3.org/2000/svg">
       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
     </svg>
@@ -147,7 +154,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  // 🔗 あなたの最新の環境情報をセット済みです！
   const LIFF_ID = "2010673306-p2rwZ34r"; 
   const GAS_URL = "https://script.google.com/macros/s/AKfycbw4TzTHfG8iwpTdSrv1Cxt7VOGXv6Ti8A4f_jOXDE4EG_vBxtL_IJjsoMZAdyiqWe6P/exec"; 
 
@@ -173,6 +179,7 @@
       });
   });
 
+  // （以下、機能の処理はそのまま維持されています）
   function loadProducts() {
     fetch(GAS_URL, {
       method: "POST",
@@ -290,8 +297,6 @@
 
   function submitOrder() {
     bootstrapModal.hide();
-    
-    // ⏳ 紙飛行機ローディングを表示！
     document.getElementById("loading-overlay").style.display = "flex";
 
     let itemsTextArray = [];
@@ -321,7 +326,6 @@
     .then(res => res.json())
     .then(data => {
       document.getElementById("loading-overlay").style.display = "none";
-      
       if (data.status === "success") {
         alert("ご注文ありがとうございました！");
         liff.closeWindow(); 
