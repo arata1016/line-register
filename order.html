@@ -34,6 +34,8 @@
     .qty-btn:active { background: #e9ecef; }
     
     .cart-summary { background: white; border-top: 1px solid #dee2e6; padding: 16px; position: fixed; bottom: 0; left: 0; right: 0; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
+    .order-info { background: #f0f8f3; border: 1px solid #cfe8d7; border-radius: 10px; padding: 12px; font-size: 13px; line-height: 1.7; }
+    .terms-note { background: #fff8e1; border-radius: 8px; padding: 10px; font-size: 12px; line-height: 1.6; color: #665c3d; }
     
     /* ボタンが押せない時は少し半透明にする */
     .btn-success:disabled {
@@ -138,7 +140,7 @@
 <div class="cart-summary" id="summary-area" style="display: none;">
   <div class="container">
     <div class="mb-3">
-      <input type="text" id="notes" class="form-control" placeholder="お店へのご要望・伝言があれば入力してください">
+      <input type="text" id="notes" class="form-control" maxlength="500" placeholder="お店へのご要望・伝言があれば入力してください（500文字以内）">
     </div>
     <div class="d-flex justify-content-between align-items-center mb-3">
       <span class="fw-bold fs-5">合計金額:</span>
@@ -161,6 +163,7 @@
       <div class="modal-body p-4">
         <p class="text-muted small mb-3">以下の内容で注文を確定します。間違いがないかご確認ください。</p>
         <div id="modal-items-list" class="mb-3 border-bottom pb-3"></div>
+        <div id="modal-customer-info" class="order-info mb-3"></div>
         <div class="mb-3 small" id="modal-notes-area" style="display:none;">
           <strong class="text-muted">◆ お店へのご要望:</strong>
           <div id="modal-notes-text" class="p-2 bg-light rounded mt-1 text-secondary"></div>
@@ -168,6 +171,9 @@
         <div class="d-flex justify-content-between align-items-center mt-3">
           <span class="fw-bold fs-5">合計金額:</span>
           <span class="fw-bold fs-3 text-danger">¥<span id="modal-total-price">0</span></span>
+        </div>
+        <div class="terms-note mt-3">
+          天候や収穫状況により、数量の変更または欠品となる場合があります。欠品分は請求対象になりません。注文内容の変更・キャンセルは注文締切までにLINEでご連絡ください。
         </div>
       </div>
       <div class="modal-footer border-0 p-3 pt-0">
@@ -211,6 +217,9 @@
   let idToken = "";
   let bootstrapModal = null; 
   let isSubmitting = false; // 🌟 連打防止フラグ
+  let currentWeekId = "";
+  let customerProfile = null;
+  let orderRequestId = "";
 
   document.addEventListener("DOMContentLoaded", function() {
     bootstrapModal = new bootstrap.Modal(document.getElementById('confirmModal'));
@@ -250,6 +259,8 @@
       document.getElementById("loading").style.display = "none";
       if (data.status === "success") {
         productsData = data.products;
+        currentWeekId = data.weekId;
+        customerProfile = data.customer;
         renderProducts();
         document.getElementById("summary-area").style.display = "block";
       } else {
@@ -261,11 +272,27 @@
     });
   }
 
-  // 🥕 【大修正】ボタンの引数にシングルクォーテーションを明示して、すべての商品が独立して動くように修正
+  function createTextElement(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    element.textContent = text;
+    return element;
+  }
+
+  function isSafeImageUrl(value) {
+    try {
+      const url = new URL(value, window.location.href);
+      return url.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
   function renderProducts() {
     const listDiv = document.getElementById("product-list");
+    listDiv.innerHTML = "";
     if (productsData.length === 0) {
-      listDiv.innerHTML = '<p class="text-center text-muted">現在、販売中の商品はありません。</p>';
+      listDiv.appendChild(createTextElement('p', 'text-center text-muted', '現在、販売中の商品はありません。'));
       return;
     }
 
@@ -274,29 +301,45 @@
 
       const card = document.createElement("div");
       card.className = "product-card";
-      card.innerHTML = `
-        <div class="row align-items-center">
-          <!-- 📷 画像エリア -->
-          <div class="col-3 d-flex justify-content-start">
-            ${p.imageUrl ? `<img src="${p.imageUrl}" class="product-img" alt="${p.name}">` : '<div class="product-img d-flex align-items-center justify-content-center text-muted small text-center px-1" style="background:#eee; font-size: 11px;">No Img</div>'}
-          </div>
-          
-          <!-- 📝 テキストエリア -->
-          <div class="col flex-grow-1 ps-2">
-            <h5 class="mb-0 fw-bold">${p.name}</h5>
-            <small class="text-muted d-block mb-1">${p.volume || ""}</small>
-            <p class="text-muted small mb-1" style="line-height:1.2;">${p.description || ""}</p>
-            <span class="text-danger fw-bold fs-5">¥${p.price.toLocaleString()}</span>
-          </div>
-          
-          <!-- 🔢 数量ボタンエリア（p.id を \'${p.id}\' で囲うことで、文字列として確実にJavaScriptに渡します） -->
-          <div class="col-auto d-flex align-items-center gap-2">
-            <button class="qty-btn" onclick="changeQty(\'${p.id}\', -1)">-</button>
-            <span class="fw-bold fs-5" id="qty-${p.id}" style="min-width: 1.5rem; text-align: center;">0</span>
-            <button class="qty-btn" onclick="changeQty(\'${p.id}\', 1)">+</button>
-          </div>
-        </div>
-      `;
+
+      const row = document.createElement('div');
+      row.className = 'row align-items-center';
+
+      const imageArea = document.createElement('div');
+      imageArea.className = 'col-3 d-flex justify-content-start';
+      if (p.imageUrl && isSafeImageUrl(p.imageUrl)) {
+        const image = document.createElement('img');
+        image.src = p.imageUrl;
+        image.alt = p.name;
+        image.className = 'product-img';
+        imageArea.appendChild(image);
+      } else {
+        imageArea.appendChild(createTextElement('div', 'product-img d-flex align-items-center justify-content-center text-muted small text-center px-1', 'No Img'));
+      }
+
+      const textArea = document.createElement('div');
+      textArea.className = 'col flex-grow-1 ps-2';
+      textArea.appendChild(createTextElement('h5', 'mb-0 fw-bold', p.name));
+      textArea.appendChild(createTextElement('small', 'text-muted d-block mb-1', p.volume || ''));
+      textArea.appendChild(createTextElement('p', 'text-muted small mb-1', p.description || ''));
+      textArea.appendChild(createTextElement('span', 'text-danger fw-bold fs-5', `¥${Number(p.price).toLocaleString()}`));
+
+      const qtyArea = document.createElement('div');
+      qtyArea.className = 'col-auto d-flex align-items-center gap-2';
+      const minusButton = createTextElement('button', 'qty-btn', '-');
+      const qtyText = createTextElement('span', 'fw-bold fs-5', '0');
+      qtyText.id = `qty-${p.id}`;
+      qtyText.style.minWidth = '1.5rem';
+      qtyText.style.textAlign = 'center';
+      const plusButton = createTextElement('button', 'qty-btn', '+');
+      minusButton.type = 'button';
+      plusButton.type = 'button';
+      minusButton.addEventListener('click', () => changeQty(p.id, -1));
+      plusButton.addEventListener('click', () => changeQty(p.id, 1));
+      qtyArea.append(minusButton, qtyText, plusButton);
+
+      row.append(imageArea, textArea, qtyArea);
+      card.appendChild(row);
       listDiv.appendChild(card);
     });
   }
@@ -305,6 +348,7 @@
     let currentQty = cart[productId];
     let newQty = currentQty + amount;
     if (newQty < 0) newQty = 0; 
+    if (newQty > 99) newQty = 99;
     
     cart[productId] = newQty;
     document.getElementById(`qty-${productId}`).innerText = newQty;
@@ -346,16 +390,14 @@
         
         const itemRow = document.createElement("div");
         itemRow.className = "d-flex justify-content-between align-items-center mb-2";
-        itemRow.innerHTML = `
-          <div>
-            <span class="fw-bold">${p.name}</span>
-            <small class="text-muted d-block">${p.volume || ''}</small>
-          </div>
-          <div class="text-end">
-            <span class="text-muted small">数量: ${qty}</span>
-            <span class="fw-bold d-block">¥${(p.price * qty).toLocaleString()}</span>
-          </div>
-        `;
+        const itemNameArea = document.createElement('div');
+        itemNameArea.appendChild(createTextElement('span', 'fw-bold', p.name));
+        itemNameArea.appendChild(createTextElement('small', 'text-muted d-block', p.volume || ''));
+        const itemAmountArea = document.createElement('div');
+        itemAmountArea.className = 'text-end';
+        itemAmountArea.appendChild(createTextElement('span', 'text-muted small', `数量: ${qty}`));
+        itemAmountArea.appendChild(createTextElement('span', 'fw-bold d-block', `¥${(p.price * qty).toLocaleString()}`));
+        itemRow.append(itemNameArea, itemAmountArea);
         listContainer.appendChild(itemRow);
       }
     });
@@ -370,6 +412,18 @@
     }
 
     document.getElementById("modal-total-price").innerText = total.toLocaleString();
+
+    const deliveryMethod = customerProfile ? customerProfile.deliveryMethod : '配達';
+    const paymentMethod = customerProfile ? customerProfile.paymentMethod : '未設定';
+    const deliveryText = deliveryMethod === '受取'
+      ? '受取方法の詳細はLINEでご案内します。'
+      : '固定曜日の夕方〜夜に配達します。個別の時間指定には対応していません。';
+    const infoBox = document.getElementById('modal-customer-info');
+    infoBox.replaceChildren(
+      createTextElement('div', 'fw-bold', `受渡方法：${deliveryMethod}`),
+      createTextElement('div', '', deliveryText),
+      createTextElement('div', 'fw-bold mt-1', `支払方法：${paymentMethod}`)
+    );
     bootstrapModal.show();
   }
 
@@ -388,23 +442,22 @@
     // 🌟 鮮度の高い最新のIDトークンを送信直前に再取得
     idToken = liff.getIDToken();
 
-    let itemsTextArray = [];
-    productsData.forEach(p => {
-      const qty = cart[p.id];
-      if (qty > 0) {
-        itemsTextArray.push(`${p.name}(${p.volume || '規格なし'})x${qty}`);
-      }
-    });
-    
-    let totalPrice = 0;
-    productsData.forEach(p => { totalPrice += p.price * cart[p.id]; });
+    const items = productsData
+      .filter(p => cart[p.id] > 0)
+      .map(p => ({ product_id: p.id, quantity: cart[p.id] }));
 
-    // 🌟 Claudeレビュー反映：paymentMethod（現金）の固定送信を完全に削除！
+    if (!orderRequestId) {
+      orderRequestId = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
+    }
+
     const payload = {
       action: "createOrder",
       idToken: idToken,
-      items: itemsTextArray.join(", "), 
-      totalPrice: totalPrice,
+      weeksell_id: currentWeekId,
+      items: items,
+      request_id: orderRequestId,
       notes: document.getElementById("notes").value
     };
 
