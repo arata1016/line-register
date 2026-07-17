@@ -114,6 +114,17 @@
   const LIFF_ID = "2010673306-58INvAOS";
 
   let userParamToken = "";
+  // 通信エラー後の再送でも同じIDを使用し、同じ登録処理の重複実行を防ぐ。
+  let registerRequestId = "";
+
+  function getRegisterRequestId() {
+    if (!registerRequestId) {
+      registerRequestId = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
+    }
+    return registerRequestId;
+  }
 
   window.addEventListener('DOMContentLoaded', () => {
     liff.init({ liffId: LIFF_ID })
@@ -224,7 +235,7 @@
       drop_location: deliveryMethod.value === '配達' ? document.getElementById('drop_location').value.trim() : '',
       delivery_method: deliveryMethod.value,
       payment_method: paymentMethod.value,
-      request_id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+      request_id: getRegisterRequestId(),
       idToken: userParamToken
     };
 
