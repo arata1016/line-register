@@ -11,6 +11,10 @@
     .container { max-width: 400px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     h2 { text-align: center; color: #2c7a7b; margin-top: 0; }
     .form-group { margin-bottom: 15px; }
+    .info-box { margin: 8px 0 15px; padding: 10px; border-radius: 4px; background: #edf7f7; color: #285e61; font-size: 13px; line-height: 1.6; }
+    .postal-row { display: flex; gap: 8px; }
+    .postal-row input { flex: 1; }
+    .btn-search { border: 1px solid #2c7a7b; border-radius: 4px; padding: 0 12px; background: #fff; color: #2c7a7b; font-weight: bold; white-space: nowrap; }
     label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
     input[type="text"], input[type="tel"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
     
@@ -43,29 +47,54 @@
       <input type="tel" id="phone" required placeholder="例：09012345678">
     </div>
     <div class="form-group">
+      <label for="delivery_method">お受け取り方法</label>
+      <select id="delivery_method" required>
+        <option value="配達">配達</option>
+        <option value="受取">農園・店頭で受取</option>
+      </select>
+    </div>
+
+    <div id="deliveryNotice" class="info-box">
+      配達は毎週の固定曜日、夕方〜夜を予定しています。個別の時間指定には対応していません。配達完了後、LINEでお知らせします。
+    </div>
+    <div id="pickupNotice" class="info-box" style="display:none;">
+      商品は指定の受取場所でお渡しします。受取方法の詳細はLINEでご案内します。
+    </div>
+
+    <div id="deliveryFields">
+    <div class="form-group">
       <label for="postal_code">郵便番号</label>
-      <input type="text" id="postal_code" required placeholder="例：123-4567">
+      <div class="postal-row">
+        <input type="text" id="postal_code" inputmode="numeric" autocomplete="postal-code" maxlength="8" placeholder="例：123-4567">
+        <button type="button" id="postalSearchBtn" class="btn-search">住所検索</button>
+      </div>
     </div>
     <div class="form-group">
-      <label for="address">ご住所</label>
-      <input type="text" id="address" required placeholder="例：〇〇市〇〇町1-2-3">
+      <label for="address">都道府県・市区町村・町域</label>
+      <input type="text" id="address" autocomplete="address-level1" placeholder="郵便番号から自動入力されます">
+    </div>
+    <div class="form-group">
+      <label for="address_detail">番地・建物名</label>
+      <input type="text" id="address_detail" autocomplete="address-line2" placeholder="例：1-2-3 ○○ハイツ101">
     </div>
     <div class="form-group">
       <label for="drop_location">置き配場所</label>
       <input type="text" id="drop_location" placeholder="例：玄関前の緑のコンテナ、勝手口など">
     </div>
+    </div>
     <div class="form-group">
       <label for="payment_method">お支払い方法</label>
       <select id="payment_method">
         <option value="Square">クレジットカード（Square）</option>
-        <option value="現金">現金（配達時・集金）</option>
+        <option value="現金">現金</option>
       </select>
     </div>
+    <div id="paymentNotice" class="info-box"></div>
     
     <label>プライバシーポリシー</label>
     <div class="policy-box">
       【個人情報の取り扱いについて】<br>
-      当サービスは、お預かりした個人情報（氏名、電話番号、住所、置き配場所）を、商品の配達、注文に関する連絡、および請求処理の目的にのみ利用いたします。第三者への提供や、目的外の利用は行いません。適切な安全管理措置を講じ、厳重に保管いたします。
+      当サービスは、お預かりした個人情報（氏名、電話番号、住所、置き配場所等）を、商品の注文受付、配達または受渡し、注文に関する連絡、および請求・入金管理の目的にのみ利用いたします。第三者への提供や、目的外の利用は行いません。適切な安全管理措置を講じ、厳重に保管いたします。
     </div>
 
     <div class="checkbox-group">
@@ -104,6 +133,76 @@
 
   const agreeCheck = document.getElementById('agreeCheck');
   const submitBtn = document.getElementById('submitBtn');
+  const deliveryMethod = document.getElementById('delivery_method');
+  const paymentMethod = document.getElementById('payment_method');
+  const deliveryFields = document.getElementById('deliveryFields');
+  const postalCode = document.getElementById('postal_code');
+  const address = document.getElementById('address');
+  const addressDetail = document.getElementById('address_detail');
+
+  function updateDeliveryFields() {
+    const isDelivery = deliveryMethod.value === '配達';
+    deliveryFields.style.display = isDelivery ? 'block' : 'none';
+    document.getElementById('deliveryNotice').style.display = isDelivery ? 'block' : 'none';
+    document.getElementById('pickupNotice').style.display = isDelivery ? 'none' : 'block';
+    postalCode.required = isDelivery;
+    address.required = isDelivery;
+    addressDetail.required = isDelivery;
+  }
+
+  function updatePaymentNotice() {
+    document.getElementById('paymentNotice').innerText = paymentMethod.value === 'Square'
+      ? '月末締め後、LINEでSquareのお支払いURLをお送りします。'
+      : '月末締めで請求額を確定し、配達または商品受取の際にお支払いいただきます。';
+  }
+
+  async function searchAddress() {
+    const zipcode = postalCode.value.replace(/\D/g, '');
+    if (zipcode.length !== 7) {
+      showMessage('郵便番号を7桁で入力してください。', 'error');
+      return;
+    }
+
+    const button = document.getElementById('postalSearchBtn');
+    button.disabled = true;
+    button.innerText = '検索中...';
+
+    try {
+      // 初期版はzipcloudを利用。検索に失敗しても住所は手入力できます。
+      const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zipcode}`);
+      if (!response.ok) throw new Error('住所検索サービスに接続できませんでした。');
+      const result = await response.json();
+      if (!result.results || result.results.length === 0) throw new Error('該当する住所が見つかりませんでした。');
+
+      const item = result.results[0];
+      address.value = `${item.address1}${item.address2}${item.address3}`;
+      postalCode.value = `${zipcode.slice(0, 3)}-${zipcode.slice(3)}`;
+      addressDetail.focus();
+      document.getElementById('messageBox').style.display = 'none';
+    } catch (error) {
+      showMessage(error.message + ' 住所を手入力してください。', 'error');
+    } finally {
+      button.disabled = false;
+      button.innerText = '住所検索';
+    }
+  }
+
+  function showMessage(text, type) {
+    const messageBox = document.getElementById('messageBox');
+    messageBox.className = `msg ${type}`;
+    messageBox.innerText = text;
+    messageBox.style.display = 'block';
+  }
+
+  deliveryMethod.addEventListener('change', updateDeliveryFields);
+  paymentMethod.addEventListener('change', updatePaymentNotice);
+  document.getElementById('postalSearchBtn').addEventListener('click', searchAddress);
+  postalCode.addEventListener('input', function() {
+    const digits = this.value.replace(/\D/g, '').slice(0, 7);
+    this.value = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3)}` : digits;
+  });
+  updateDeliveryFields();
+  updatePaymentNotice();
 
   agreeCheck.addEventListener('change', function() {
     submitBtn.disabled = !this.checked;
@@ -116,12 +215,16 @@
     messageBox.style.display = 'none';
 
     const formData = {
-      name: document.getElementById('name').value,
-      phone: document.getElementById('phone').value,
-      postal_code: document.getElementById('postal_code').value,
-      address: document.getElementById('address').value,
-      drop_location: document.getElementById('drop_location').value,
-      payment_method: document.getElementById('payment_method').value,
+      action: 'upsertCustomer',
+      customer_type: '個人',
+      name: document.getElementById('name').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      postal_code: deliveryMethod.value === '配達' ? postalCode.value.trim() : '',
+      address: deliveryMethod.value === '配達' ? `${address.value.trim()}${addressDetail.value.trim()}` : '',
+      drop_location: deliveryMethod.value === '配達' ? document.getElementById('drop_location').value.trim() : '',
+      delivery_method: deliveryMethod.value,
+      payment_method: paymentMethod.value,
+      request_id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
       idToken: userParamToken
     };
 
