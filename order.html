@@ -36,6 +36,8 @@
     .cart-summary { background: white; border-top: 1px solid #dee2e6; padding: 16px; position: fixed; bottom: 0; left: 0; right: 0; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
     .order-info { background: #f0f8f3; border: 1px solid #cfe8d7; border-radius: 10px; padding: 12px; font-size: 13px; line-height: 1.7; }
     .terms-note { background: #fff8e1; border-radius: 8px; padding: 10px; font-size: 12px; line-height: 1.6; color: #665c3d; }
+    .existing-order { background:#eef7f1; border:1px solid #bcdcc7; border-radius:12px; padding:14px; margin-bottom:18px; }
+    .existing-item { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #d8e9dd; }
     
     /* ボタンが押せない時は少し半透明にする */
     .btn-success:disabled {
@@ -134,6 +136,7 @@
     <p class="mt-3 text-muted small fw-bold">畑から新鮮な野菜を収穫しています...</p>
   </div>
 
+  <div id="existing-order" style="display:none;"></div>
   <div id="product-list"></div>
 </div>
 
@@ -143,7 +146,7 @@
       <input type="text" id="notes" class="form-control" maxlength="500" placeholder="お店へのご要望・伝言があれば入力してください（500文字以内）">
     </div>
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <span class="fw-bold fs-5">合計金額:</span>
+      <span class="fw-bold fs-5" id="summary-total-label">合計金額:</span>
       <span class="fw-bold fs-3 text-danger">¥<span id="total-price">0</span></span>
     </div>
     <button class="btn btn-success w-100 py-3 fw-bold fs-5 shadow-sm" id="checkout-btn" disabled onclick="openConfirmModal()">
@@ -203,7 +206,7 @@
     <polyline points="20 6 9 17 4 12"></polyline>
   </svg>
   <h4 class="fw-bold text-dark mb-2">ご注文ありがとうございました！</h4>
-  <p class="text-muted small px-4 text-center">注文が正常に送信されました。<br>自動的にLINE画面に戻ります...</p>
+  <p class="text-muted small px-4 text-center" id="success-message">注文が正常に送信されました。<br>自動的にLINE画面に戻ります...</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -220,6 +223,7 @@
   let currentWeekId = "";
   let customerProfile = null;
   let orderRequestId = "";
+  let existingOrder = { hasExisting:false, orderCount:0, totalAmount:0, items:[] };
 
   document.addEventListener("DOMContentLoaded", function() {
     bootstrapModal = new bootstrap.Modal(document.getElementById('confirmModal'));
@@ -261,6 +265,8 @@
         productsData = data.products;
         currentWeekId = data.weekId;
         customerProfile = data.customer;
+        existingOrder = data.existingOrder || existingOrder;
+        renderExistingOrder();
         renderProducts();
         document.getElementById("summary-area").style.display = "block";
       } else {
@@ -277,6 +283,25 @@
     if (className) element.className = className;
     element.textContent = text;
     return element;
+  }
+
+  function renderExistingOrder() {
+    const box = document.getElementById('existing-order');
+    if (!existingOrder.hasExisting) { box.style.display = 'none'; return; }
+    box.className = 'existing-order';
+    box.replaceChildren(
+      createTextElement('div', 'fw-bold text-success mb-1', '前回までのご注文'),
+      createTextElement('div', 'small text-muted mb-2', '今回入力する数量は、以下への追加分です。')
+    );
+    (existingOrder.items || []).forEach(item => {
+      const row = document.createElement('div'); row.className = 'existing-item';
+      const identity = document.createElement('div');
+      identity.append(createTextElement('div', 'fw-bold', item.name), createTextElement('small', 'text-muted', item.volume || ''));
+      row.append(identity, createTextElement('div', 'fw-bold', `× ${item.quantity}`));
+      box.appendChild(row);
+    });
+    box.appendChild(createTextElement('div', 'text-end fw-bold mt-2', `注文済み合計　¥${Number(existingOrder.totalAmount).toLocaleString()}`));
+    document.getElementById('summary-total-label').textContent = '今回追加分:';
   }
 
   function isSafeImageUrl(value) {
@@ -469,6 +494,14 @@
     .then(data => {
       document.getElementById("loading-overlay").style.display = "none";
       if (data.status === "success") {
+        const successMessage = document.getElementById('success-message');
+        if (data.additionalOrder) {
+          successMessage.replaceChildren(
+            document.createTextNode('追加注文として受け付けました。'), document.createElement('br'),
+            document.createTextNode('同じ週のご注文は、まとめて梱包・配達します。'), document.createElement('br'),
+            document.createTextNode('自動的にLINE画面に戻ります...')
+          );
+        }
         document.getElementById("success-overlay").style.display = "flex";
         setTimeout(() => {
           liff.closeWindow(); 
