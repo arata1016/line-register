@@ -38,6 +38,8 @@
     .terms-note { background: #fff8e1; border-radius: 8px; padding: 10px; font-size: 12px; line-height: 1.6; color: #665c3d; }
     .existing-order { background:#eef7f1; border:2px solid #86b996; border-radius:12px; padding:14px; margin-bottom:18px; box-shadow:0 2px 8px rgba(25,135,84,.08); }
     .existing-item { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #d8e9dd; }
+    .confirm-order-box { border:1px solid #dee2e6; border-radius:10px; padding:12px; background:#fff; }
+    .confirm-order-box.previous { background:#f1f8f3; border-color:#bcdcc7; }
     
     /* ボタンが押せない時は少し半透明にする */
     .btn-success:disabled {
@@ -165,14 +167,29 @@
       </div>
       <div class="modal-body p-4">
         <p class="text-muted small mb-3">以下の内容で注文を確定します。間違いがないかご確認ください。</p>
-        <div id="modal-items-list" class="mb-3 border-bottom pb-3"></div>
+        <div id="modal-existing-area" class="confirm-order-box previous mb-3" style="display:none;">
+          <div class="fw-bold text-success mb-2">前回までのご注文</div>
+          <div id="modal-existing-items-list"></div>
+          <div class="d-flex justify-content-between border-top pt-2 mt-2 fw-bold small">
+            <span>注文済み小計</span>
+            <span>¥<span id="modal-existing-total">0</span></span>
+          </div>
+        </div>
+        <div class="confirm-order-box mb-3">
+          <div id="modal-current-title" class="fw-bold mb-2">今回のご注文</div>
+          <div id="modal-items-list"></div>
+          <div class="d-flex justify-content-between border-top pt-2 mt-2 fw-bold small">
+            <span id="modal-current-subtotal-label">今回の小計</span>
+            <span>¥<span id="modal-current-total">0</span></span>
+          </div>
+        </div>
         <div id="modal-customer-info" class="order-info mb-3"></div>
         <div class="mb-3 small" id="modal-notes-area" style="display:none;">
           <strong class="text-muted">◆ お店へのご要望:</strong>
           <div id="modal-notes-text" class="p-2 bg-light rounded mt-1 text-secondary"></div>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-3">
-          <span class="fw-bold fs-5">合計金額:</span>
+          <span class="fw-bold fs-5" id="modal-grand-total-label">合計金額:</span>
           <span class="fw-bold fs-3 text-danger">¥<span id="modal-total-price">0</span></span>
         </div>
         <div class="terms-note mt-3">
@@ -411,12 +428,12 @@
   function openConfirmModal() {
     const listContainer = document.getElementById("modal-items-list");
     listContainer.innerHTML = ""; 
-    let total = 0;
+    let currentTotal = 0;
 
     productsData.forEach(p => {
       const qty = cart[p.id];
       if (qty > 0) {
-        total += p.price * qty;
+        currentTotal += p.price * qty;
         
         const itemRow = document.createElement("div");
         itemRow.className = "d-flex justify-content-between align-items-center mb-2";
@@ -441,7 +458,33 @@
       notesArea.style.display = "none";
     }
 
-    document.getElementById("modal-total-price").innerText = total.toLocaleString();
+    const existingArea = document.getElementById('modal-existing-area');
+    const existingList = document.getElementById('modal-existing-items-list');
+    existingList.replaceChildren();
+    const previousTotal = existingOrder.hasExisting ? Number(existingOrder.totalAmount) || 0 : 0;
+    if (existingOrder.hasExisting) {
+      (existingOrder.items || []).forEach(item => {
+        const itemRow = document.createElement('div');
+        itemRow.className = 'd-flex justify-content-between align-items-center mb-2';
+        const itemNameArea = document.createElement('div');
+        itemNameArea.appendChild(createTextElement('span', 'fw-bold', item.name));
+        itemNameArea.appendChild(createTextElement('small', 'text-muted d-block', item.volume || ''));
+        itemRow.append(itemNameArea, createTextElement('span', 'fw-bold', `× ${item.quantity}`));
+        existingList.appendChild(itemRow);
+      });
+      document.getElementById('modal-existing-total').innerText = previousTotal.toLocaleString();
+      existingArea.style.display = 'block';
+      document.getElementById('modal-current-title').textContent = '今回追加するご注文';
+      document.getElementById('modal-current-subtotal-label').textContent = '今回の追加分';
+      document.getElementById('modal-grand-total-label').textContent = '追加後の合計金額:';
+    } else {
+      existingArea.style.display = 'none';
+      document.getElementById('modal-current-title').textContent = '今回のご注文';
+      document.getElementById('modal-current-subtotal-label').textContent = '今回の小計';
+      document.getElementById('modal-grand-total-label').textContent = '合計金額:';
+    }
+    document.getElementById('modal-current-total').innerText = currentTotal.toLocaleString();
+    document.getElementById("modal-total-price").innerText = (previousTotal + currentTotal).toLocaleString();
 
     const deliveryMethod = customerProfile ? customerProfile.deliveryMethod : '配達';
     const paymentMethod = customerProfile ? customerProfile.paymentMethod : '未設定';
