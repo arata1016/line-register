@@ -127,6 +127,7 @@
 
 <div class="container pt-4" style="margin-bottom: 180px;">
   <h2 class="text-center mb-4 fw-bold text-success">商品ご注文</h2>
+  <p id="fulfillment-date" class="text-center fw-bold text-dark mb-4" style="display:none;"></p>
   
   <!-- 🥕 新しいローディング表示（畑から野菜を収穫中） -->
   <div id="loading">
@@ -283,6 +284,14 @@
         currentWeekId = data.weekId;
         customerProfile = data.customer;
         existingOrder = data.existingOrder || existingOrder;
+        const fulfillmentDateElement = document.getElementById('fulfillment-date');
+        if (data.fulfillmentDateLabel) {
+          const methodLabel = customerProfile && customerProfile.deliveryMethod === '受取' ? '受取予定日' : '配達予定日';
+          fulfillmentDateElement.textContent = `${methodLabel}：${data.fulfillmentDateLabel}`;
+          fulfillmentDateElement.style.display = 'block';
+        } else {
+          fulfillmentDateElement.style.display = 'none';
+        }
         renderExistingOrder();
         renderProducts();
         document.getElementById("summary-area").style.display = "block";
@@ -492,11 +501,15 @@
       ? '受取方法の詳細はLINEでご案内します。'
       : '固定曜日の夕方〜夜に配達します。個別の時間指定には対応していません。';
     const infoBox = document.getElementById('modal-customer-info');
-    infoBox.replaceChildren(
+    const infoRows = [];
+    const fulfillmentDateText = document.getElementById('fulfillment-date').textContent;
+    if (fulfillmentDateText) infoRows.push(createTextElement('div', 'fw-bold mb-1', fulfillmentDateText));
+    infoRows.push(
       createTextElement('div', 'fw-bold', `受渡方法：${deliveryMethod}`),
       createTextElement('div', '', deliveryText),
       createTextElement('div', 'fw-bold mt-1', `支払方法：${paymentMethod}`)
     );
+    infoBox.replaceChildren(...infoRows);
     bootstrapModal.show();
   }
 
